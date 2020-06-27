@@ -9,7 +9,7 @@ from data import Market1501_Attribute
 
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
-query = {'Shorts': 1, 'Female': 1, 'AgeLess18': 1, 'Backpack': 1}
+query = {'Shorts': 1, 'Female': 1, 'Age18-60': 1, 'Backpack': 1}
 
 arr = None
 

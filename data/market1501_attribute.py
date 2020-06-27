@@ -7,23 +7,25 @@ import tarfile
 import zipfile
 import re
 import glob
+import gdown
 import scipy.io
 import numpy as np
 from tqdm import tqdm
 from collections import defaultdict
 
-from utils import download_file_from_google_drive
+from utils import download_file_from_google_drive, download_with_url
 
 class Market1501_Attribute(object):
     dataset_dir = 'market1501_attribute'
     dataset_id = '13GJogmW1neVqSOHxZ_EUo9KfoWuwsAQM'
     file_name = 'Market-1501-v15.09.15-Attribute.zip'
+    google_drive_api = 'AIzaSyAVfS-7Dy34a3WjWgR509o-u_3Of59zizo'
 
     def __init__(self, root_dir='datasets', download=True, extract=True, re_label_on_train=True):
         self.root_dir = root_dir
         if download:
             print("Downloading!")
-            self.file_name = self._download()
+            self._download()
             print("Downloaded!")
         if extract:
             print("Extracting!")
@@ -61,8 +63,6 @@ class Market1501_Attribute(object):
         self.dict_attribute['train'], self.dict_attribute_label['train'] = self._get_dict_attribute(f, 'train', relabel=re_label_on_train, pid2label=pid2label['train'])
         self.dict_attribute['test'], self.dict_attribute_label['test'] = self._get_dict_attribute(f, 'test', relabel=False)
         
-        pass
-
     def get_data(self, mode='train'):
         if mode == 'train':
             return self.train
@@ -125,7 +125,8 @@ class Market1501_Attribute(object):
     def _download(self):
         os.makedirs(os.path.join(self.root_dir,
                                  self.dataset_dir, 'raw'), exist_ok=True)
-        return download_file_from_google_drive(self.dataset_id, os.path.join(self.root_dir, self.dataset_dir, 'raw'))
+        download_with_url(self.google_drive_api, self.dataset_id, os.path.join(self.root_dir, self.dataset_dir, 'raw'), self.file_name)
+        
 
     def _extract(self):
         file_path = os.path.join(

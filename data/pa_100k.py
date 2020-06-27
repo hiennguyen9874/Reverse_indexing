@@ -11,18 +11,18 @@ import sys
 sys.path.append('.')
 from tqdm import tqdm, tnrange
 from collections import defaultdict
-from utils import download_file_from_google_drive
-
+from utils import download_file_from_google_drive, download_with_url
 class PA_100K(object):
     dataset_dir = 'pa_100k'
     dataset_id = '13UjvKJQlkNXAmvsPG6h5dwOlhJQA_TcT'
     file_name = 'PA-100K.zip'
-
+    google_drive_api = 'AIzaSyAVfS-7Dy34a3WjWgR509o-u_3Of59zizo'
+    
     def __init__(self, root_dir='datasets', download=True, extract=True):
         self.root_dir = root_dir
         if download:
             print("Downloading!")
-            self.file_name = self._download()
+            self._download()
             print("Downloaded!")
         if extract:
             print("Extracting!")
@@ -70,7 +70,7 @@ class PA_100K(object):
     def _download(self):
         os.makedirs(os.path.join(self.root_dir,
                                  self.dataset_dir, 'raw'), exist_ok=True)
-        return download_file_from_google_drive(self.dataset_id, os.path.join(self.root_dir, self.dataset_dir, 'raw'))
+        download_with_url(self.google_drive_api, self.dataset_id, os.path.join(self.root_dir, self.dataset_dir, 'raw'), self.file_name)
 
     def _extract(self):
         file_path = os.path.join(
@@ -109,6 +109,6 @@ class PA_100K(object):
         pass
 
 if __name__ == "__main__":
-    datasource = PA_100K(root_dir='/home/hien/Documents/datasets', download=False, extract=False)
+    datasource = PA_100K(root_dir='/home/hien/Documents/datasets', download=True, extract=True)
     all_data = datasource.get_data('train')[0] + datasource.get_data('val')[0] + datasource.get_data('test')[0]
     pass

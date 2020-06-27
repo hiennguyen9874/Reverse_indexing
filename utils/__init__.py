@@ -1,1 +1,1 @@
-from .download_drive import download_file_from_google_drive
+from .download_drive import download_file_from_google_drive, download_with_url

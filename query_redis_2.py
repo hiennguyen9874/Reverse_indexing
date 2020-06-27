@@ -32,7 +32,11 @@ for attribute in attribute_label:
     query_key += '_'
 query_key += '*'
 
+print(query_key)
+
 r = redis.StrictRedis(host='localhost', port=6379, db=1)
+
+pipe = r.pipeline()
 
 start_time = time.time()
 list_path = []
@@ -40,6 +44,7 @@ all_keys = r.keys(query_key)
 for key in all_keys:
     list_path.append(r.hgetall(key)['path'.encode('utf-8')].decode('utf-8'))
 print("time excute: %s seconds" % (time.time() - start_time))
+
 
 print(f'num of result: {len(list_path)}')
 
