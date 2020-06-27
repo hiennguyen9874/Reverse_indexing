@@ -169,6 +169,7 @@ if __name__ == "__main__":
     # plt.ylabel('time (s)')
     # plt.show()
 
+<<<<<<< HEAD
     ''' Test query with num of images
     '''
     num_sampler = 1000000
@@ -178,6 +179,18 @@ if __name__ == "__main__":
     #     all_data = list(zip(['path/to/images.jpg']*num_sampler, np.random.randint(0, 2, size=(num_sampler, len(attribute_label))).tolist()))
     #     print(f'insert {num_sampler} samplers')
     #     print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
+=======
+
+    ''' Test query with num of images
+    '''
+    num_sampler = 1000000
+    database.r.flushall()
+    database.r.flushdb()
+    for _ in range(2):
+        all_data = list(zip(['path/to/images.jpg']*num_sampler, np.random.randint(0, 2, size=(num_sampler, len(attribute_label))).tolist()))
+        print(f'insert {num_sampler} samplers')
+        print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
+>>>>>>> 4a748e3aece41bba3cd6481957cb2d718565d71e
     num_sampler *= 2
     print("Option 1")
     start_time = time.time()
