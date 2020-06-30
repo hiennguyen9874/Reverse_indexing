@@ -14,13 +14,12 @@ from collections import defaultdict
 
 from utils import download_with_url
 
-class Penta_Attribute(object):
-    dataset_dir = 'penta_attribute'
-    dataset_id = '13OGfT_mvX5VjXW6WdwTLoM1tqEh_N58H'
-    file_name = 'PETA.zip'
+class Penta_New_Attribute(object):
+    dataset_dir = 'penta_new_attribute'
+    dataset_id = '13UvQ4N-sY67htGnK6qheb027XuMx9Jbr'
+    file_name = 'PETA-New.zip'
     google_drive_api = 'AIzaSyAVfS-7Dy34a3WjWgR509o-u_3Of59zizo'
-    list_folder = ['3DPeS', 'CAVIAR4REID', 'CUHK', 'GRID', 'i-LID', 'MIT', 'PRID', 'SARC3D', 'TownCentre', 'VIPeR']
-
+  
     def __init__(self, root_dir='datasets', download=True, extract=True):
         self.root_dir = root_dir
         if download:
@@ -38,17 +37,21 @@ class Penta_Attribute(object):
         self.camid_containter = dict()
         self.frames_container = dict()
         pid2label = dict()
+        f = scipy.io.loadmat(os.path.join(data_dir, 'PETA.mat'))
 
-        self._process_dir(os.path.join(data_dir, '3DPeS', 'archive'), relabel=False)
+        self.data = list()
+        for idx in range(len(f['peta'][0][0][0])):
+            self.data.append((os.path.join(data_dir, 'images', '%05d.png'%(f['peta'][0][0][0][idx][0])), f['peta'][0][0][0][idx][4:].tolist()))
+        
+        self.attribute_label = list()
+        for idx in range(len(f['peta'][0][0][1])):
+            self.attribute_label.append(f['peta'][0][0][1][idx][0][0])
 
     def get_data(self, mode='train'):
-        pass
+        return self.data, self.attribute_label
 
     def get_attribute(self, mode = 'train'):
-        pass
-
-    def _process_dir(self, path, relabel):
-        pass
+        self.attribute_label
 
     def _download(self):
         os.makedirs(os.path.join(self.root_dir, self.dataset_dir, 'raw'), exist_ok=True)
@@ -72,21 +75,13 @@ class Penta_Attribute(object):
             zip_ref.close()
 
     def _exists(self, extract_dir):
-        if os.path.exists(os.path.join(extract_dir, 'ReadMe.txt')):
-            for x in self.list_folder:
-                if not os.path.exists(os.path.join(extract_dir, x)):
-                    return False
+        if os.path.exists(os.path.join(extract_dir, 'images')) \
+            and os.path.exists(os.path.join(extract_dir, 'README')) \
+            and os.path.exists(os.path.join(extract_dir, 'PETA.mat')):
             return True
         return False
 
-    def get_num_classes(self, datasets: str):
-        pass
-
-    def get_num_camera(self, datasets: str):
-        pass
-
-    def get_name_dataset(self):
-        pass
 
 if __name__ == "__main__":
-    datasource = Penta_Attribute(root_dir='/home/hien/Documents/datasets')
+    datasource = Penta_New_Attribute(root_dir='/home/hien/Documents/datasets')
+    path = datasource.get_data()[0][0]

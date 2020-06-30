@@ -64,9 +64,6 @@ class PA_100K(object):
         else:
             raise ValueError('mode error')
 
-    def _process_dir(self, path, relabel):
-        pass
-
     def _download(self):
         os.makedirs(os.path.join(self.root_dir,
                                  self.dataset_dir, 'raw'), exist_ok=True)
@@ -99,16 +96,63 @@ class PA_100K(object):
             return True
         return False
 
-    def get_num_classes(self, datasets: str):
-        pass
-
-    def get_num_camera(self, datasets: str):
-        pass
-
-    def get_name_dataset(self):
-        pass
+    def get_list_attribute_random(self):
+        import itertools
+        import operator
+        import functools
+        arr = list()
+        arr.append([[0], [1]]) #1
+        arr.append([[0, 0, 1], [0, 1, 0], [1,1, 0]]) #2
+        arr.append([[0, 0, 1], [0, 1, 0], [1,1, 0]]) #3
+        for _ in range(6): # 4-> 9
+            arr.append([[0], [1]])
+        arr.append([[0, 1], [1, 0]]) # 10
+        for _ in range(7): # 11->17
+            arr.append([[0], [1]])
+        arr.append([[0, 0, 1], [0, 1, 0], [1, 1, 0]]) #18
+        arr.append([[0], [1]]) # 19
+        return [list(itertools.chain(*ele)) for ele in itertools.product(*arr)]
 
 if __name__ == "__main__":
     datasource = PA_100K(root_dir='/home/hien/Documents/datasets', download=True, extract=True)
     all_data = datasource.get_data('train')[0] + datasource.get_data('val')[0] + datasource.get_data('test')[0]
+    datasource.get_list_attribute_random()
     pass
+
+'''
+['Female']:1
+
+['AgeOver60']: 2
+['Age18-60']: 2
+['AgeLess18']: 2
+
+['Front']: 3
+['Side']: 3
+['Back']: 3
+
+['Hat']: 4
+['Glasses']: 5
+['HandBag']: 6
+['ShoulderBag']: 7
+['Backpack']: 8
+['HoldObjectsInFront']: 9
+
+['ShortSleeve']: 10
+['LongSleeve']: 10
+
+['UpperStride']: 11
+['UpperLogo']: 12
+['UpperPlaid']: 13
+['UpperSplice']: 14
+
+['LowerStripe']: 15
+['LowerPattern']: 16
+
+['LongCoat']: 17
+
+['Trousers']: 18
+['Shorts']: 18
+['Skirt&Dress']: 18
+
+['boots']: 19
+'''

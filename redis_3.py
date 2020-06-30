@@ -112,38 +112,47 @@ class Database_reid(object):
             self.pipe.delete(key)
         self.pipe.execute()
 
-if __name__ == "__main__":
+if __name__ == "__main__":    
+    print('Connecting...')
+    database = Database_reid(host='localhost', port=6379, db=2)
+    print('Connected!')
+    
     datasource = PA_100K(root_dir='/home/hien/Documents/datasets', download=False, extract=False)
     attribute_label = datasource.attr_name
-
-    database = Database_reid(host='localhost', port=6379, db=2)
+    print("num attribute: %d" % (len(attribute_label)))
     database.set_attribute_label(attribute_label)
     
     query_str = {'Female': 0, 'Age18-60': 1, 'Backpack': 1, 'Shorts': 0}
+
+    list_attribute_rand = np.array(datasource.get_list_attribute_random())
     
     ''' Test time insert, query
     '''
     # list_num_sampler = [1000, 5000, 10000, 50000, 100000, 500000, 1000000, 5000000, 10000000, 50000000, 100000000, 500000000, 1000000000]
     # list_num_sampler = [1000, 5000, 10000, 50000, 100000, 500000, 1000000]
-    # list_time_insert = []
+    # # list_time_insert = []
     # list_time_query = []
     # database.r.flushall()
     # database.r.flushdb()
+    # num_images = 50
     # for num_sampler in list_num_sampler:
     #     print(f'num_sampler: {num_sampler}')
     #     all_data = list(zip(['path/to/images.jpg']*num_sampler, np.random.randint(0, 2, size=(num_sampler, len(attribute_label))).tolist()))
 
-    #     # print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
-    #     list_time_insert.append(database.insert(data=all_data, attribute_label=attribute_label))
+    #     print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
+    #     # list_time_insert.append(database.insert(data=all_data, attribute_label=attribute_label))
     #     database.set_attribute_label(attribute_label)
 
+    #     num_query = 0
     #     start_time = time.time()
-    #     all_path = database.query_all(query_str)
+    #     database.query_fixed_count(query_str, num_images=num_images)
+    #     list_time_query.append(time.time()-start_time)
+
     #     # print(f'time query data: {time.time() - start_time}')
-    #     list_time_query.append(time.time() - start_time)
+    #     # list_time_query.append(time.time() - start_time)
     #     database.r.flushall()
     #     database.r.flushdb()
-    # plt.plot(list_num_sampler, list_time_insert, "-b", label='time insert')
+    # # plt.plot(list_num_sampler, list_time_insert, "-b", label='time insert')
     # plt.plot(list_num_sampler, list_time_query, "-r", label='time query')
     # plt.legend(loc="upper left")
     # plt.xlabel('num sampler')
@@ -152,79 +161,116 @@ if __name__ == "__main__":
 
     ''' Test time insert when database available
     '''
-    # database.r.flushall()
-    # database.r.flushdb()
-    # num_sampler = 100000
-    # list_num_sampler = [x*num_sampler for x in  list(range(50))]
-    # list_time_insert = []
-    # for i in range(50):
-    #     print(f'i: {i}')
-    #     all_data = list(zip(['path/to/images.jpg']*num_sampler, np.random.randint(0, 2, size=(num_sampler, len(attribute_label))).tolist()))
-    #     # print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
-    #     list_time_insert.append(database.insert(data=all_data, attribute_label=attribute_label))
-    #     database.set_attribute_label(attribute_label)
-    # plt.plot(list_num_sampler, list_time_insert, "-b", label='time insert')
-    # plt.legend(loc="upper left")
-    # plt.xlabel('num sampler available')
-    # plt.ylabel('time (s)')
+    database.r.flushall()
+    database.r.flushdb()
+    num_sampler = 50000
+    list_time_insert = []
+    list_time_first_query = []
+    num_images = 50
+    num_iter = 100
+    for i in range(num_iter):
+        print(f'i: {i}')
+        all_data = list(zip(['path/to/images.jpg']*num_sampler, list_attribute_rand[np.random.choice(list_attribute_rand.shape[0], num_sampler, replace=True), :].tolist()))
+        # print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
+        list_time_insert.append(database.insert(data=all_data, attribute_label=attribute_label))
+        
+        database.set_attribute_label(attribute_label)
+        start_time = time.time()
+        all_time = 0
+        num_query = 0
+        for index, all_keys in enumerate(database.query_fixed_count(query_str, num_images=num_images)):
+            all_time += time.time()-start_time
+            start_time = time.time()
+            num_query += 1
+        if num_query == 0:
+            num_query = 1
+        list_time_first_query.append(all_time/num_query)
+
+        # start_time = time.time()
+        # all_path = database.query_all(query_str)
+        # list_time_first_query.append((time.time() - start_time)/len(all_path))
+
+    color = 'tab:red'
+    plt.xlabel('num sampler')
+    plt.ylabel('time insert (s)', color=color)
+    plt.plot([x*num_sampler for x in list(range(num_iter))], list_time_insert, color, label='time insert')
+    plt.tick_params(axis='y', labelcolor=color)
+    plt.tight_layout()
+    plt.show()
+    
+    color = 'tab:blue'
+    plt.ylabel('time query (s)', color=color)
+    plt.plot([x*num_sampler for x in list(range(1, num_iter+1))], list_time_first_query, color, label='time query')
+    plt.tick_params(axis='y', labelcolor=color)
+    plt.tight_layout()
+    plt.show()
+
+    # fig1, ax1 = plt.subplots()
+    # ax1.plot([x*5 for x in list(range(num_iter))], list_time_insert, '-r', label='time insert')
+    # ax1.set_xlabel('num sampler available (x10^4)')
+    # ax1.set_xlim(0, (num_iter-1)*5)
+    # ax1.set_xticks(np.arange(0, 5 * num_iter, 5))
+    # ax1.set_ylabel('time (s)')
+    # fig1.tight_layout()
+
+    # fig2, ax2 = plt.subplots()
+    # ax2.plot([x*5 for x in list(range(1, num_iter+1))], [x*10000 for x in list_time_first_query] , '-b', label='time query')
+    # ax2.set_xlabel('num sampler in database (x10^4)')
+    # ax2.set_xlim(5, num_iter*5)
+    # ax2.set_xticks(np.arange(5, 5 * (num_iter+1), 5))
+    # ax2.set_ylabel('time (x10^-5 s)')
+    # fig2.tight_layout()
     # plt.show()
 
-<<<<<<< HEAD
     ''' Test query with num of images
     '''
-    num_sampler = 1000000
+    # database.r.flushall()
+    # database.r.flushdb()
+    # all_data = datasource.get_data('train')[0] + datasource.get_data('val')[0] + datasource.get_data('test')[0]
+    # print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
+
+    # num_sampler = 1000000
     # database.r.flushall()
     # database.r.flushdb()
     # for _ in range(2):
     #     all_data = list(zip(['path/to/images.jpg']*num_sampler, np.random.randint(0, 2, size=(num_sampler, len(attribute_label))).tolist()))
     #     print(f'insert {num_sampler} samplers')
     #     print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
-=======
+    # num_sampler *= 2
+    
+    # print("Option 1")
+    # start_time = time.time()
+    # num_images = 100
+    # num_query = 0
+    # all_time = 0.0
+    # for index, all_keys in enumerate(database.query_fixed_count(query_str, num_images=num_images)):
+    #     if index == 0:
+    #         print('index: %d, time query %d images: %f' % (index, num_images, time.time()-start_time))
+    #     else:
+    #         all_time += time.time()-start_time
+    #         num_query += 1
+    #     start_time = time.time()
+    # print('avg query time: %f' % (all_time/num_query))
 
-    ''' Test query with num of images
-    '''
-    num_sampler = 1000000
-    database.r.flushall()
-    database.r.flushdb()
-    for _ in range(2):
-        all_data = list(zip(['path/to/images.jpg']*num_sampler, np.random.randint(0, 2, size=(num_sampler, len(attribute_label))).tolist()))
-        print(f'insert {num_sampler} samplers')
-        print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
->>>>>>> 4a748e3aece41bba3cd6481957cb2d718565d71e
-    num_sampler *= 2
-    print("Option 1")
-    start_time = time.time()
-    num_images = 100
-    num_query = 0
-    all_time = 0.0
-    for index, all_keys in enumerate(database.query_fixed_count(query_str, num_images=num_images)):
-        if index == 0:
-            print('index: %d, time query %d images: %f' % (index, num_images, time.time()-start_time))
-        else:
-            all_time += time.time()-start_time
-            num_query += 1
-        start_time = time.time()
-    print('avg query time: %f' % (all_time/num_query))
+    # print('Option 2')
+    # start_time = time.time()
+    # num_query = 0
+    # all_time = 0.0
+    # for index, all_keys in enumerate(database.query_with_num(query_str, num_images=num_images)):
+    #     if index == 0:
+    #         print('index: %d, time query %d images: %f' % (index, num_images, time.time()-start_time))
+    #     else:
+    #         all_time += time.time()-start_time
+    #         num_query += 1
+    #     start_time = time.time()
+    # print('avg query time: %f' % (all_time/num_query))
 
-    print('Option 2')
-    start_time = time.time()
-    num_query = 0
-    all_time = 0.0
-    for index, all_keys in enumerate(database.query_with_num(query_str, num_images=num_images)):
-        if index == 0:
-            print('index: %d, time query %d images: %f' % (index, num_images, time.time()-start_time))
-        else:
-            all_time += time.time()-start_time
-            num_query += 1
-        start_time = time.time()
-    print('avg query time: %f' % (all_time/num_query))
+    # print("Option 3")
+    # start_time = time.time()
+    # all_path = database.query_all(query_str)
+    # print('time query all images: %f' % (time.time() - start_time))
 
-    print("Option 3")
-    start_time = time.time()
-    all_path = database.query_all(query_str)
-    print('time query all images: %f' % (time.time() - start_time))
-
-    ''' Demo query all with num of images
+    ''' Demo query all with num of images, datasets: PA-100K
     '''
     # database.r.flushall()
     # database.r.flushdb()

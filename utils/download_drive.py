@@ -95,7 +95,7 @@ def download_with_url(api, file_id, destination, name_file):
     if os.path.exists(partfile):
         stat = os.stat(partfile)
         response.close()
-        response = session.get(URL, params=params, stream=True, headers={'Range': 'bytes={}-'.format(stat.st_size)})
+        response = session.get(url, stream=True, headers={'Range': 'bytes={}-'.format(stat.st_size)})
         initial = stat.st_size 
         range = response.headers.get('Content-Range', None)
 
