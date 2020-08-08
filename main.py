@@ -126,21 +126,23 @@ if __name__ == "__main__":
     attribute_label = datasource.get_attribute()
     print("num attribute: %d" % (len(attribute_label)))
     database.set_attribute_label(attribute_label)
-
+    
+    # remove all in database
+    database.r.flushall()
+    database.r.flushdb()
+    
+    # insert
     all_data = datasource.get_data('train') + datasource.get_data('val') + datasource.get_data('test')
     print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
     
     num_img = 10
-    query_str = {'Female': 0}
+    query_str = {'Female': 0, 'Age18-60': 1, 'Backpack': 1, 'Shorts': 0}
 
-    all_path = database.query_all(query_str)
-    print(len(all_path))
-
-    # for list_path in database.query_fixed_count(query_str, num_img):
-    #     img = np.concatenate([Image.open(x).resize((64, 128)) for x in list_path], axis=1)
-    #     plt.figure(figsize=(40, 20*num_img))
-    #     plt.imshow(img)
-    #     plt.axis('off')
-    #     plt.show()
+    for list_path in database.query_fixed_count(query_str, num_img):
+        img = np.concatenate([Image.open(x).resize((64, 128)) for x in list_path], axis=1)
+        plt.figure(figsize=(40, 20*num_img))
+        plt.imshow(img)
+        plt.axis('off')
+        plt.show()
 
     
