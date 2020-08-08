@@ -1,17 +1,20 @@
 # Copy from here: https://gist.github.com/grimpy/7dd579059d7c4c42d0528e4676edffaf
-import requests
-import sys
 import os
+import sys
+sys.path.append('.')
+
+import requests
 from tqdm import tqdm
 
-def download_file_from_google_drive(id, destination=None):
+__all__ = ['download_file_from_google_drive', 'download_with_url']
+
+def download_file_from_google_drive(id, destination=None, use_tqdm=True):
     URL = "https://docs.google.com/uc?export=download"
 
     session = requests.Session()
     viewresp = session.get(URL, params={"id": id}, stream=True)
 
     token = None
-    print(viewresp.cookies.get_dict())
     for key, value in viewresp.cookies.get_dict().items():
         if key.startswith("download_warning"):
             token = value
@@ -59,17 +62,28 @@ def download_file_from_google_drive(id, destination=None):
         initial = stat.st_size 
         range = response.headers.get('Content-Range', None)
 
-    with tqdm(desc=destination, total=total_size, initial=initial, unit="B", unit_scale=True) as pbar:
-        with open(partfile, "ab") as f:
-            f.seek(initial)
-            for chunk in response.iter_content(CHUNK_SIZE):
-                if chunk:
+    if use_tqdm:
+        pbar = tqdm(desc=destination, total=total_size, initial=initial, unit="B", unit_scale=True)
+    with open(partfile, "ab") as f:
+        f.seek(initial)
+        for chunk in response.iter_content(CHUNK_SIZE):
+            if chunk:
+                if use_tqdm:
                     pbar.update(CHUNK_SIZE)
-                    f.write(chunk)
-        os.rename(partfile, destination)
+                f.write(chunk)
+    os.rename(partfile, destination)
     return filename
 
-def download_with_url(api, file_id, destination, name_file):
+def download_with_url(api, file_id, destination, name_file, use_tqdm=True):
+    r""" download file from google drive
+    Args:
+        api: google drive api. (https://www.wonderplugin.com/wordpress-tutorials/how-to-apply-for-a-google-drive-api-key/)
+        file_id: id of file on google drive
+        destination: folder will contain file
+        name_file: name of file on google drive
+        use_tqdm: enable process bar
+    Returns:
+    """
     session = requests.Session()
     url = "https://www.googleapis.com/drive/v3/files/" + file_id + "?alt=media&key=" + api
     response = session.get(url, stream=True, headers={'Range': 'bytes=0-'})
@@ -99,12 +113,14 @@ def download_with_url(api, file_id, destination, name_file):
         initial = stat.st_size 
         range = response.headers.get('Content-Range', None)
 
-    with tqdm(desc=destination, total=total_size, initial=initial, unit="B", unit_scale=True) as pbar:
-        with open(partfile, "ab") as f:
-            f.seek(initial)
-            for chunk in response.iter_content(CHUNK_SIZE):
-                if chunk:
+    if use_tqdm:
+        pbar = tqdm(desc=destination, total=total_size, initial=initial, unit="B", unit_scale=True)
+    with open(partfile, "ab") as f:
+        f.seek(initial)
+        for chunk in response.iter_content(CHUNK_SIZE):
+            if chunk:
+                if use_tqdm:
                     pbar.update(CHUNK_SIZE)
-                    f.write(chunk)
-        os.rename(partfile, destination)
+                f.write(chunk)
+    os.rename(partfile, destination)
     return filename

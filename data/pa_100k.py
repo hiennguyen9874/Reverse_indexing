@@ -1,92 +1,66 @@
-
 import numpy as np
 import scipy.io
-import glob
-import re
-import zipfile
-import tarfile
-import requests
 import os
 import sys
 sys.path.append('.')
-from tqdm import tqdm, tnrange
-from collections import defaultdict
-from utils import download_file_from_google_drive, download_with_url
-class PA_100K(object):
-    dataset_dir = 'pa_100k'
+
+from base import BaseDataSource
+
+class PA_100K(BaseDataSource):
+    r''' https://github.com/xh-liu/HydraPlus-Net/blob/master/README.md
+    '''
     dataset_id = '13UjvKJQlkNXAmvsPG6h5dwOlhJQA_TcT'
-    file_name = 'PA-100K.zip'
-    google_drive_api = 'AIzaSyAVfS-7Dy34a3WjWgR509o-u_3Of59zizo'
-    
-    def __init__(self, root_dir='datasets', download=True, extract=True):
-        self.root_dir = root_dir
+    group_order = [7, 8, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 9, 10, 11, 12, 1, 2, 3, 0, 4, 5, 6]
+
+    def __init__(
+        self,root_dir='datasets',
+        download=True,
+        extract=True,
+        use_tqdm=True):
+
+        super(PA_100K, self).__init__(
+            root_dir,
+            dataset_dir = 'pa_100k',
+            file_name = 'PA-100K.zip',
+            image_size=(256, 128))
+        
         if download:
-            print("Downloading!")
-            self._download()
-            print("Downloaded!")
+            self._download(self.dataset_id, use_tqdm=use_tqdm)
         if extract:
-            print("Extracting!")
-            self._extract()
-            print("Extracted!")
-
-        data_dir = os.path.join(self.root_dir, self.dataset_dir, 'processed')
-
-        self.pid_container = dict()
-        self.camid_containter = dict()
-        self.frames_container = dict()
-        pid2label = dict()
-
-        f = scipy.io.loadmat(os.path.join(data_dir, 'annotation.mat'))
+            self._extract(use_tqdm=use_tqdm)
+            
+        f = scipy.io.loadmat(os.path.join(self.data_dir, 'annotation.mat'))
         image_name = dict()
         label = dict()
-        image_name['train'] = [os.path.join(
-            data_dir, 'images', f['train_images_name'][i][0][0]) for i in range(80000)]
-        label['train'] = f['train_label']
-        image_name['val'] = [os.path.join(
-            data_dir, 'images',  f['val_images_name'][i][0][0]) for i in range(10000)]
-        label['val'] = f['val_label']
-        image_name['test'] = [os.path.join(
-            data_dir, 'images', f['test_images_name'][i][0][0]) for i in range(10000)]
-        label['test'] = f['test_label']
+        
+        image_name['train'] = [os.path.join(self.data_dir, 'images', f['train_images_name'][i][0][0]) for i in range(80000)]
+        label['train'] = f['train_label'][:, np.array(self.group_order)].astype(np.float32)
+        
+        image_name['val'] = [os.path.join(self.data_dir, 'images',  f['val_images_name'][i][0][0]) for i in range(10000)]
+        label['val'] = f['val_label'][:, np.array(self.group_order)].astype(np.float32)
+        
+        image_name['test'] = [os.path.join(self.data_dir, 'images', f['test_images_name'][i][0][0]) for i in range(10000)]
+        label['test'] = f['test_label'][:, np.array(self.group_order)].astype(np.float32)
 
-        self.attr_name = [f['attributes'][i][0][0] for i in range(26)]
-        self.train = list(zip(image_name['train'], label['train']))
-        self.val = list(zip(image_name['val'], label['val']))
-        self.test = list(zip(image_name['test'], label['test']))
+        self.attribute_name = [f['attributes'][i][0][0] for i in range(26)]
+        self.data = dict()
+        self.weight = dict()
+        for phase in ['train', 'val', 'test']:
+            self.data[phase] = list(zip(image_name[phase], label[phase]))
+            self.weight[phase] = np.mean(label[phase], axis=0).astype(np.float32)
+        
+        self._check_file_exits()
 
-    def get_data(self, mode='train'):
-        if mode == 'train':
-            return self.train, self.attr_name
-        elif mode == 'val':
-            return self.val, self.attr_name
-        elif mode == 'test':
-            return self.test, self.attr_name
-        else:
-            raise ValueError('mode error')
-
-    def _download(self):
-        os.makedirs(os.path.join(self.root_dir,
-                                 self.dataset_dir, 'raw'), exist_ok=True)
-        download_with_url(self.google_drive_api, self.dataset_id, os.path.join(self.root_dir, self.dataset_dir, 'raw'), self.file_name)
-
-    def _extract(self):
-        file_path = os.path.join(
-            self.root_dir, self.dataset_dir, 'raw', self.file_name)
-        extract_dir = os.path.join(
-            self.root_dir, self.dataset_dir, 'processed')
-        if self._exists(extract_dir):
-            return
-        try:
-            tar = tarfile.open(file_path)
-            os.makedirs(extract_dir, exist_ok=True)
-            for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
-                tar.extract(member=member, path=extract_dir)
-            tar.close()
-        except:
-            zip_ref = zipfile.ZipFile(file_path, 'r')
-            for member in tqdm(iterable=zip_ref.infolist(), total=len(zip_ref.infolist())):
-                zip_ref.extract(member=member, path=extract_dir)
-            zip_ref.close()
+    def get_data(self, phase='train'):
+        assert phase in ['train', 'val', 'test'], 'phase must in [train, val, test]'
+        return self.data[phase]
+    
+    def get_weight(self, phase = 'train'):
+        assert phase in ['train', 'val', 'test'], 'phase must in [train, val, test]'
+        return self.weight[phase]
+    
+    def get_attribute(self):
+        return self.attribute_name
 
     def _exists(self, extract_dir):
         if os.path.exists(os.path.join(extract_dir, 'images')) \
@@ -98,8 +72,6 @@ class PA_100K(object):
 
     def get_list_attribute_random(self):
         import itertools
-        import operator
-        import functools
         arr = list()
         arr.append([[0], [1]]) #1
         arr.append([[0, 0, 1], [0, 1, 0], [1,1, 0]]) #2
@@ -114,9 +86,10 @@ class PA_100K(object):
         return [list(itertools.chain(*ele)) for ele in itertools.product(*arr)]
 
 if __name__ == "__main__":
-    datasource = PA_100K(root_dir='/home/hien/Documents/datasets', download=True, extract=True)
-    all_data = datasource.get_data('train')[0] + datasource.get_data('val')[0] + datasource.get_data('test')[0]
-    datasource.get_list_attribute_random()
+    from utils import read_config
+    config = read_config('config/base.yml')
+    datasource = PA_100K(root_dir=config['data']['data_dir'], download=True, extract=True)
+    print(np.expand_dims(datasource.get_weight('train'), axis=1))
     pass
 
 '''

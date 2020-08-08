@@ -3,10 +3,11 @@ import redis
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+
 from PIL import Image
 from datetime import datetime
 from collections import deque
-from data import Market1501_Attribute, PA_100K
+from data import PA_100K
 
 class Database_reid(object):
     def __init__(self, host='localhost', port=6379, db=0):
@@ -114,17 +115,18 @@ class Database_reid(object):
 
 if __name__ == "__main__":    
     print('Connecting...')
-    database = Database_reid(host='localhost', port=6379, db=2)
+    database = Database_reid(host='168.63.252.148', port=6379, db=0)
     print('Connected!')
     
-    datasource = PA_100K(root_dir='/home/hien/Documents/datasets', download=False, extract=False)
-    attribute_label = datasource.attr_name
-    print("num attribute: %d" % (len(attribute_label)))
-    database.set_attribute_label(attribute_label)
+    datasource = PA_100K(root_dir='/datasets', download=True, extract=True)
     
-    query_str = {'Female': 0, 'Age18-60': 1, 'Backpack': 1, 'Shorts': 0}
+    # attribute_label = datasource.attr_name
+    # print("num attribute: %d" % (len(attribute_label)))
+    # database.set_attribute_label(attribute_label)
+    
+    # query_str = {'Female': 0, 'Age18-60': 1, 'Backpack': 1, 'Shorts': 0}
 
-    list_attribute_rand = np.array(datasource.get_list_attribute_random())
+    # list_attribute_rand = np.array(datasource.get_list_attribute_random())
     
     ''' Test time insert, query
     '''
@@ -161,49 +163,49 @@ if __name__ == "__main__":
 
     ''' Test time insert when database available
     '''
-    database.r.flushall()
-    database.r.flushdb()
-    num_sampler = 50000
-    list_time_insert = []
-    list_time_first_query = []
-    num_images = 50
-    num_iter = 100
-    for i in range(num_iter):
-        print(f'i: {i}')
-        all_data = list(zip(['path/to/images.jpg']*num_sampler, list_attribute_rand[np.random.choice(list_attribute_rand.shape[0], num_sampler, replace=True), :].tolist()))
-        # print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
-        list_time_insert.append(database.insert(data=all_data, attribute_label=attribute_label))
+    # database.r.flushall()
+    # database.r.flushdb()
+    # num_sampler = 50000
+    # list_time_insert = []
+    # list_time_first_query = []
+    # num_images = 50
+    # num_iter = 100
+    # for i in range(num_iter):
+    #     print(f'i: {i}')
+    #     all_data = list(zip(['path/to/images.jpg']*num_sampler, list_attribute_rand[np.random.choice(list_attribute_rand.shape[0], num_sampler, replace=True), :].tolist()))
+    #     # print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
+    #     list_time_insert.append(database.insert(data=all_data, attribute_label=attribute_label))
         
-        database.set_attribute_label(attribute_label)
-        start_time = time.time()
-        all_time = 0
-        num_query = 0
-        for index, all_keys in enumerate(database.query_fixed_count(query_str, num_images=num_images)):
-            all_time += time.time()-start_time
-            start_time = time.time()
-            num_query += 1
-        if num_query == 0:
-            num_query = 1
-        list_time_first_query.append(all_time/num_query)
+    #     database.set_attribute_label(attribute_label)
+    #     start_time = time.time()
+    #     all_time = 0
+    #     num_query = 0
+    #     for index, all_keys in enumerate(database.query_fixed_count(query_str, num_images=num_images)):
+    #         all_time += time.time()-start_time
+    #         start_time = time.time()
+    #         num_query += 1
+    #     if num_query == 0:
+    #         num_query = 1
+    #     list_time_first_query.append(all_time/num_query)
 
         # start_time = time.time()
         # all_path = database.query_all(query_str)
         # list_time_first_query.append((time.time() - start_time)/len(all_path))
 
-    color = 'tab:red'
-    plt.xlabel('num sampler')
-    plt.ylabel('time insert (s)', color=color)
-    plt.plot([x*num_sampler for x in list(range(num_iter))], list_time_insert, color, label='time insert')
-    plt.tick_params(axis='y', labelcolor=color)
-    plt.tight_layout()
-    plt.show()
+    # color = 'tab:red'
+    # plt.xlabel('num sampler')
+    # plt.ylabel('time insert (s)', color=color)
+    # plt.plot([x*num_sampler for x in list(range(num_iter))], list_time_insert, color, label='time insert')
+    # plt.tick_params(axis='y', labelcolor=color)
+    # plt.tight_layout()
+    # plt.show()
     
-    color = 'tab:blue'
-    plt.ylabel('time query (s)', color=color)
-    plt.plot([x*num_sampler for x in list(range(1, num_iter+1))], list_time_first_query, color, label='time query')
-    plt.tick_params(axis='y', labelcolor=color)
-    plt.tight_layout()
-    plt.show()
+    # color = 'tab:blue'
+    # plt.ylabel('time query (s)', color=color)
+    # plt.plot([x*num_sampler for x in list(range(1, num_iter+1))], list_time_first_query, color, label='time query')
+    # plt.tick_params(axis='y', labelcolor=color)
+    # plt.tight_layout()
+    # plt.show()
 
     # fig1, ax1 = plt.subplots()
     # ax1.plot([x*5 for x in list(range(num_iter))], list_time_insert, '-r', label='time insert')
