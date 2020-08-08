@@ -34,13 +34,16 @@ class PA_100K(BaseDataSource):
         label = dict()
         
         image_name['train'] = [os.path.join(self.data_dir, 'images', f['train_images_name'][i][0][0]) for i in range(80000)]
-        label['train'] = f['train_label'][:, np.array(self.group_order)].astype(np.float32)
+        # label['train'] = f['train_label'][:, np.array(self.group_order)].astype(np.float32)
+        label['train'] = f['train_label'][:, np.array(self.group_order)]
         
         image_name['val'] = [os.path.join(self.data_dir, 'images',  f['val_images_name'][i][0][0]) for i in range(10000)]
-        label['val'] = f['val_label'][:, np.array(self.group_order)].astype(np.float32)
+        # label['val'] = f['val_label'][:, np.array(self.group_order)].astype(np.float32)
+        label['val'] = f['val_label'][:, np.array(self.group_order)]
         
         image_name['test'] = [os.path.join(self.data_dir, 'images', f['test_images_name'][i][0][0]) for i in range(10000)]
-        label['test'] = f['test_label'][:, np.array(self.group_order)].astype(np.float32)
+        # label['test'] = f['test_label'][:, np.array(self.group_order)].astype(np.float32)
+        label['test'] = f['test_label'][:, np.array(self.group_order)]
 
         self.attribute_name = [f['attributes'][i][0][0] for i in range(26)]
         self.data = dict()
