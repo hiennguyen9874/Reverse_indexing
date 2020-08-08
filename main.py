@@ -9,7 +9,7 @@ from datetime import datetime
 from collections import deque
 
 
-from data import PA_100K
+from data import PA_100K, Peta
 
 class Database_reid(object):
     def __init__(self, host='localhost', port=6379, db=0):
@@ -27,7 +27,7 @@ class Database_reid(object):
             }
             key = ''
             for index_attribute in range(len(attribute_label)):
-                key += attribute_label[index_attribute] + '-' + str(data[index][1][index_attribute]) + '_'
+                key += attribute_label[index_attribute] + '-' + str(int(data[index][1][index_attribute])) + '_'
             self.pipe.hmset(key[:-1], save_dict)
         self.pipe.execute()
         return time.time() - start_time
@@ -118,10 +118,12 @@ class Database_reid(object):
 
 if __name__ == "__main__":
     print('Connecting...')
-    database = Database_reid(host='168.63.252.148', port=6379, db=0)
+    # database = Database_reid(host='168.63.252.148', port=6379, db=0)
+    database = Database_reid(host='168.63.252.148', port=6379, db=1)
     print('Connected!')
     
-    datasource = PA_100K('/datasets', True, True, True)
+    # datasource = PA_100K('/datasets', True, True, True)
+    datasource = Peta('/datasets', True, True, True)
     
     attribute_label = datasource.get_attribute()
     print("num attribute: %d" % (len(attribute_label)))
@@ -136,7 +138,7 @@ if __name__ == "__main__":
     print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
     
     num_img = 10
-    query_str = {'Female': 0, 'Age18-60': 1, 'Backpack': 1, 'Shorts': 0}
+    query_str = {'hairLong': 1, 'personalMale': 1}
 
     for list_path in database.query_fixed_count(query_str, num_img):
         img = np.concatenate([Image.open(x).resize((64, 128)) for x in list_path], axis=1)
@@ -145,4 +147,3 @@ if __name__ == "__main__":
         plt.axis('off')
         plt.show()
 
-    
