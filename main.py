@@ -125,6 +125,7 @@ if __name__ == "__main__":
     # datasource = PA_100K('/datasets', True, True, True)
     datasource = Peta('/datasets', True, True, True)
     
+    # set attribute into database
     attribute_label = datasource.get_attribute()
     print("num attribute: %d" % (len(attribute_label)))
     database.set_attribute_label(attribute_label)
