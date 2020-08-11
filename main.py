@@ -8,7 +8,6 @@ from PIL import Image
 from datetime import datetime
 from collections import deque
 
-
 from data import PA_100K, Peta
 
 class Database_reid(object):
@@ -18,6 +17,10 @@ class Database_reid(object):
         self.attribute_label = None
     
     def insert(self, data, attribute_label):
+        r""" Insert data into database
+        Args:
+            data (list of tuple(path, list of label)): [(path1, [1, 0, 0, 1]), ()]
+        """
         self.attribute_label = attribute_label
         start_time = time.time()
         start_index = int(datetime.now().strftime(r'%m%d%H%M%S'))
@@ -81,19 +84,23 @@ class Database_reid(object):
             yield [cached_value.pop().decode('utf-8') for _ in range(len(cached_value))]
 
     def query_all(self, query_str:str):
+        r""" Query all key matched with query_str, return all path
+        """
         query_key = self._get_query_key(query_str)
         all_keys = self.r.keys(query_key)
         for key in all_keys:
             self.pipe.hgetall(key)
         return [y.decode('utf-8') for x in self.pipe.execute() for y in x.values()]
     
-    def query_all_with_num(self, query_str: str, num_images, func):
+    def query_all_with_num(self, query_str: str, num_images):
+        r""" Query all key, return num_images path
+        """
         all_path = self.query_all(query_str)
         index = 0
         while index < len(all_path):
-            list_image = [func(x) for x in all_path[index:index+num_images]]
+            list_path = all_path[index:index+num_images]
             index += num_images
-            yield list_image
+            yield list_path
 
     def _get_query_key(self, query_str):
         query_key = ''
@@ -114,7 +121,6 @@ class Database_reid(object):
         for key in self.r.scan_iter("*", count=10000000):
             self.pipe.delete(key)
         self.pipe.execute()
-
 
 if __name__ == "__main__":
     print('Connecting...')
@@ -139,12 +145,11 @@ if __name__ == "__main__":
     print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
     
     num_img = 10
-    query_str = {'hairLong': 1, 'personalMale': 1}
+    query_str = {'personalMale': 1, 'personalLess30': 1, 'accessorySunglasses': 1}
 
-    for list_path in database.query_fixed_count(query_str, num_img):
+    for list_path in database.query_all_with_num(query_str, num_img):
         img = np.concatenate([Image.open(x).resize((64, 128)) for x in list_path], axis=1)
         plt.figure(figsize=(40, 20*num_img))
         plt.imshow(img)
         plt.axis('off')
         plt.show()
-
