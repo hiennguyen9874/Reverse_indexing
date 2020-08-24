@@ -11,12 +11,12 @@ from collections import deque
 from data import PA_100K, Peta
 
 class Database_reid(object):
-    def __init__(self, host='localhost', port=6379, db=0):
-        self.r = redis.StrictRedis(host=host, port=port, db=db)
+    def __init__(self, host='localhost', port=6379, db=0, password=None):
+        self.r = redis.Redis(host=host, port=port, db=db, password=password)
         self.pipe = self.r.pipeline()
         self.attribute_label = None
     
-    def insert(self, data, attribute_label):
+    def insert(self, data, attribute_label, tag=None):
         r""" Insert data into database
         Args:
             data (list of tuple(path, list of label)): [(path1, [1, 0, 0, 1]), ()]
@@ -31,15 +31,18 @@ class Database_reid(object):
             key = ''
             for index_attribute in range(len(attribute_label)):
                 key += attribute_label[index_attribute] + '-' + str(int(data[index][1][index_attribute])) + '_'
-            self.pipe.hmset(key[:-1], save_dict)
+            if tag != None:
+                key += 'tag-'+ tag + '_'
+            self.pipe.hmset(key, save_dict)
         self.pipe.execute()
         return time.time() - start_time
     
     def query(self, query_str: str):
-        query_key = self._get_query_key(query_str)
+        r""" Query theo tung dong, khong xac dinh duoc so anh tra ve, khong cache lai tren local
+        """
         cursor1 = '0'
         while cursor1 != 0:
-            cursor1, data1 = self.r.scan(cursor=cursor1, match=query_key)
+            cursor1, data1 = self.r.scan(cursor=cursor1, match=query_str)
             if len(data1) == 0:
                 continue
             for item1 in data1:
@@ -50,16 +53,15 @@ class Database_reid(object):
                 yield list_path
     
     def query_fixed_count(self, query_str: str, num_images: int):
-        '''
+        r""" Query theo tung key, khi nao du so luong thi tra ve, cache lai phan du tren ram
         Args:
             query_str (str): query string from users
             num_images (int): num of images in Paging
         Returns:
             list of path to image
-        '''
-        query_key = self._get_query_key(query_str)
+        """
         cached_value = deque()
-        for index, key in enumerate(self.r.scan_iter(match=query_key)):
+        for index, key in enumerate(self.r.scan_iter(match=query_str)):
             self.pipe.hgetall(key)
             if (index+1) % num_images == 0:
                 cached_value.extendleft([y for x in self.pipe.execute() for y in x.values()])
@@ -70,8 +72,9 @@ class Database_reid(object):
             yield [cached_value.pop().decode('utf-8') for _ in range(len(cached_value))]
         
     def query_with_num(self, query_str: str, num_images):
-        query_key = self._get_query_key(query_str)
-        all_keys = self.r.keys(query_key)
+        r""" query tat ca key match, cache lai toan bo key match tren ram, tra ve so luong theo ham python generator
+        """
+        all_keys = self.r.keys(query_str)
         cached_value = deque()
         for index, key in enumerate(all_keys):
             self.pipe.hgetall(key)
@@ -86,14 +89,13 @@ class Database_reid(object):
     def query_all(self, query_str:str):
         r""" Query all key matched with query_str, return all path
         """
-        query_key = self._get_query_key(query_str)
-        all_keys = self.r.keys(query_key)
+        all_keys = self.r.keys(query_str)
         for key in all_keys:
             self.pipe.hgetall(key)
         return [y.decode('utf-8') for x in self.pipe.execute() for y in x.values()]
     
     def query_all_with_num(self, query_str: str, num_images):
-        r""" Query all key, return num_images path
+        r""" Query toan bo anh match voi query string, luu lai toan bo path do tren ram, tra ve du so luong theo ham python generator
         """
         all_path = self.query_all(query_str)
         index = 0
@@ -102,50 +104,59 @@ class Database_reid(object):
             index += num_images
             yield list_path
 
-    def _get_query_key(self, query_str):
+    def get_query_key(self, query_dict, tag=None):
+        r""" Return query string from dict.
+        """
         query_key = ''
         for attribute in self.attribute_label:
             query_key += attribute + '-'
-            if attribute in query_str.keys():
-                query_key += str(query_str[attribute])
+            if attribute in query_dict.keys():
+                query_key += str(query_dict[attribute])
             else:
                 query_key += '*'
             query_key += '_'
-        query_key = query_key[:-1] + '*'
+        if tag != None:
+            query_key += 'tag-'+ tag + '_'
+        query_key = query_key + '*'
         return query_key
     
     def set_attribute_label(self, attribute_label):
         self.attribute_label = attribute_label
     
     def remove_all(self):
-        for key in self.r.scan_iter("*", count=10000000):
-            self.pipe.delete(key)
-        self.pipe.execute()
+        r""" Remove all in current database
+        """
+        # for key in self.r.scan_iter("*", count=10000000):
+        #     self.pipe.delete(key)
+        # self.pipe.execute()
+        # self.r.flushall()
+        self.r.flushdb()
 
 if __name__ == "__main__":
+    f = open("password.txt", "r")
+    password = f.readline()
     print('Connecting...')
-    # database = Database_reid(host='168.63.252.148', port=6379, db=0)
-    database = Database_reid(host='168.63.252.148', port=6379, db=1)
+    database = Database_reid(host='168.63.252.148', port=6379, db=1, password=password)
     print('Connected!')
     
-    # datasource = PA_100K('/datasets', True, True, True)
     datasource = Peta('/datasets', True, True, True)
     
     # set attribute into database
     attribute_label = datasource.get_attribute()
     print("num attribute: %d" % (len(attribute_label)))
     database.set_attribute_label(attribute_label)
-    
+
     # remove all in database
-    database.r.flushall()
-    database.r.flushdb()
-    
+    # database.remove_all()
+
     # insert
-    all_data = datasource.get_data('train') + datasource.get_data('val') + datasource.get_data('test')
-    print(f'time insert data: {database.insert(data=all_data, attribute_label=attribute_label)}')
+    # all_data = datasource.get_data('train') + datasource.get_data('val') + datasource.get_data('test')
+    # time_insert = database.insert(data=all_data, attribute_label=attribute_label, tag='ahihi')
+    # print(f'time insert data: {time_insert}')
     
     num_img = 10
-    query_str = {'personalMale': 1, 'personalLess30': 1, 'accessorySunglasses': 1}
+    query_dict = {'personalMale': 1, 'personalLess30': 1, 'accessorySunglasses': 1}
+    query_str = database.get_query_key(query_dict, tag='ahihi')
 
     for list_path in database.query_all_with_num(query_str, num_img):
         img = np.concatenate([Image.open(x).resize((64, 128)) for x in list_path], axis=1)
