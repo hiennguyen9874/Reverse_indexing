@@ -136,7 +136,7 @@ if __name__ == "__main__":
     f = open("password.txt", "r")
     password = f.readline()
     print('Connecting...')
-    database = Database_reid(host='168.63.252.148', port=6379, db=1, password=password)
+    database = Database_reid(host='13.76.183.220', port=6379, db=0, password=password)
     print('Connected!')
     
     datasource = Peta('/datasets', True, True, True)
@@ -147,12 +147,12 @@ if __name__ == "__main__":
     database.set_attribute_label(attribute_label)
 
     # remove all in database
-    # database.remove_all()
+    database.remove_all()
 
     # insert
-    # all_data = datasource.get_data('train') + datasource.get_data('val') + datasource.get_data('test')
-    # time_insert = database.insert(data=all_data, attribute_label=attribute_label, tag='ahihi')
-    # print(f'time insert data: {time_insert}')
+    all_data = datasource.get_data('train') + datasource.get_data('val') + datasource.get_data('test')
+    time_insert = database.insert(data=all_data, attribute_label=attribute_label, tag='ahihi')
+    print(f'time insert data: {time_insert}')
     
     num_img = 10
     query_dict = {'personalMale': 1, 'personalLess30': 1, 'accessorySunglasses': 1}
