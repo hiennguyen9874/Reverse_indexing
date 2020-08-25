@@ -1,9 +1,10 @@
 import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../'))
+
 import zipfile
 import tarfile
 
-import sys
-sys.path.append('.')
 from tqdm import tqdm
 
 from utils import download_file_from_google_drive, download_with_url

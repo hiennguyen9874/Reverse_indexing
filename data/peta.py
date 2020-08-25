@@ -1,9 +1,9 @@
 import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../'))
+
 import scipy.io
 import numpy as np
-
-import sys
-sys.path.append('.')
 
 from collections import defaultdict
 

@@ -1,8 +1,9 @@
-import numpy as np
-import scipy.io
 import os
 import sys
-sys.path.append('.')
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../'))
+
+import numpy as np
+import scipy.io
 
 from base import BaseDataSource
 
