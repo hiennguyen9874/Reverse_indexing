@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../'))
 
 import requests
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 __all__ = ['download_file_from_google_drive', 'download_with_url']
 
@@ -19,10 +19,10 @@ def download_file_from_google_drive(id, destination=None, use_tqdm=True):
         if key.startswith("download_warning"):
             token = value
             break
-    else:
-        print("Could not find token for url")
-        # sys.exit(1)
-        raise SystemExit
+    # else:
+    #     print("Could not find token for url")
+    #     # sys.exit(1)
+    #     raise SystemExit
 
     params = {"id": id, "confirm": token}
     response = session.get(URL, params=params, stream=True, headers={'Range': 'bytes=0-'})
@@ -74,7 +74,7 @@ def download_file_from_google_drive(id, destination=None, use_tqdm=True):
     os.rename(partfile, destination)
     return filename
 
-def download_with_url(api, file_id, destination, name_file, use_tqdm=True):
+def download_with_url(url, destination, name_file, use_tqdm=True):
     r""" download file from google drive
     Args:
         api: google drive api. (https://www.wonderplugin.com/wordpress-tutorials/how-to-apply-for-a-google-drive-api-key/)
@@ -85,7 +85,6 @@ def download_with_url(api, file_id, destination, name_file, use_tqdm=True):
     Returns:
     """
     session = requests.Session()
-    url = "https://www.googleapis.com/drive/v3/files/" + file_id + "?alt=media&key=" + api
     response = session.get(url, stream=True, headers={'Range': 'bytes=0-'})
 
     CHUNK_SIZE = 32 * 1024

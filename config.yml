@@ -1,0 +1,79 @@
+attribute: peta_attribute.pkl
+data:
+  dir: data
+  img_format:
+  - bmp
+  - dib
+  - jpeg
+  - jpg
+  - jpe
+  - jp2
+  - png
+  - webp
+  - pbm
+  - pgm
+  - ppm
+  - pxm
+  - pnm
+  - pfm
+  - sr
+  - ras
+  - tiff
+  - tif
+  - exr
+  - hdr
+  - pic
+  size:
+  - 256
+  - 192
+database:
+  db:
+  - 0:
+      activate: true
+  - 1:
+      activate: true
+  - 2:
+      activate: false
+  - 3:
+      activate: false
+  - 4:
+      activate: false
+  - 5:
+      activate: false
+  - 6:
+      activate: false
+  - 7:
+      activate: false
+  - 8:
+      activate: false
+  - 9:
+      activate: false
+  - 10:
+      activate: false
+  - 11:
+      activate: false
+  - 12:
+      activate: false
+  - 13:
+      activate: false
+  - 14:
+      activate: false
+  - 15:
+      activate: false
+  host: 52.230.123.142
+  password: abcxyz123
+  port: 6379
+model:
+  backbone: resnet50
+  batch_norm_bias: true
+  bn_where: after
+  head: BNHead
+  name: baseline
+  pooling: gem_pooling
+  pooling_size: 1
+  pretrained: false
+  use_tqdm: false
+n_gpu: 0
+resume: model_best_accuracy.pth
+url_classifier: http://52.230.2.212:10040/predictions/eager_model
+url_detect: https://vision.googleapis.com/v1/images:annotate?key=AIzaSyBxw4fXncYXzqG3Y0lyFuiT1cyyzaNpUMM

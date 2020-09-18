@@ -1,20 +1,29 @@
+
 import os
 import sys
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../'))
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../'))
 
+import pickle
 import numpy as np
+
 import scipy.io
 
 from base import BaseDataSource
 
 class PA_100K(BaseDataSource):
-    r''' https://github.com/xh-liu/HydraPlus-Net/blob/master/README.md
+    r''' https://github.com/xh-liu/HydraPlus-Net/blob/master/README.md,
     '''
-    dataset_id = '1Jfb3I8BK4oOX3eepaiYyd4fHoMNkgTaz'
+    url = {
+        'PA-100K.zip': '1Jfb3I8BK4oOX3eepaiYyd4fHoMNkgTaz'
+    }
+    file_path = {
+        'PA-100K.zip': '/content/drive/Shared drives/REID/HIEN/Datasets/PA-100K.zip',
+    }
     group_order = [7, 8, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 9, 10, 11, 12, 1, 2, 3, 0, 4, 5, 6]
 
     def __init__(
-        self,root_dir='datasets',
+        self,
+        root_dir='datasets',
         download=True,
         extract=True,
         use_tqdm=True):
@@ -22,25 +31,33 @@ class PA_100K(BaseDataSource):
         super(PA_100K, self).__init__(
             root_dir,
             dataset_dir = 'pa_100k',
-            file_name = 'PA-100K.zip',
             image_size=(256, 128))
         
         if download:
-            self._download(self.dataset_id, use_tqdm=use_tqdm)
-        if extract:
-            self._extract(use_tqdm=use_tqdm)
-            
-        f = scipy.io.loadmat(os.path.join(self.data_dir, 'annotation.mat'))
+            for key, value in self.url.items():
+                try:
+                    self._download(file_name=key, file_path=self.file_path[key], use_tqdm=use_tqdm)
+                except:
+                    self._download(file_name=key, dataset_id=value, use_tqdm=use_tqdm)
+        if extract: 
+            for key, value in self.url.items():
+                self._extract(file_name=key, use_tqdm=use_tqdm)
+        
+        data_dir = os.path.join(self.root_dir, self.dataset_dir, 'processed')
+        if os.path.exists(os.path.join(self.root_dir, self.dataset_dir, 'processed', 'PA-100K')):
+            data_dir = os.path.join(data_dir, 'PA-100K')
+
+        f = scipy.io.loadmat(os.path.join(data_dir, 'annotation.mat'))
         image_name = dict()
         label = dict()
         
-        image_name['train'] = [os.path.join(self.data_dir, 'images', f['train_images_name'][i][0][0]) for i in range(80000)]
+        image_name['train'] = [os.path.join(data_dir, 'images', f['train_images_name'][i][0][0]) for i in range(80000)]
         label['train'] = f['train_label'][:, np.array(self.group_order)].astype(np.float32)
         
-        image_name['val'] = [os.path.join(self.data_dir, 'images',  f['val_images_name'][i][0][0]) for i in range(10000)]
+        image_name['val'] = [os.path.join(data_dir, 'images',  f['val_images_name'][i][0][0]) for i in range(10000)]
         label['val'] = f['val_label'][:, np.array(self.group_order)].astype(np.float32)
         
-        image_name['test'] = [os.path.join(self.data_dir, 'images', f['test_images_name'][i][0][0]) for i in range(10000)]
+        image_name['test'] = [os.path.join(data_dir, 'images', f['test_images_name'][i][0][0]) for i in range(10000)]
         label['test'] = f['test_label'][:, np.array(self.group_order)].astype(np.float32)
 
         self.attribute_name = [f['attributes'][i][0][0] for i in range(26)]
@@ -86,11 +103,34 @@ class PA_100K(BaseDataSource):
         arr.append([[0], [1]]) # 19
         return [list(itertools.chain(*ele)) for ele in itertools.product(*arr)]
 
+    def save_attribute(self, path='attribute.pkl'):
+        with open(path, 'wb') as f:
+            pickle.dump(self.get_attribute(), f)
+
+    def summary_count(self):
+        print('num image in training set: ', len(self.get_data('train')))
+        print('num image in valid set: ', len(self.get_data('val')))
+        print('num image in test set: ', len(self.get_data('test')))
+    
+    def summary_weight(self):
+        row_format = "{:>5}" + "{:>20}" + "{:>10}"*3
+        print(row_format.format('-', 'attribute', 'train', 'val', 'test'))
+        print(row_format.format('-', '-', '-', '-', '-'))
+        for idx in range(len(self.get_attribute())):
+            print(row_format.format(
+                idx+1,
+                self.get_attribute()[idx], 
+                round(self.get_weight('train')[idx]*100, 2),
+                round(self.get_weight('val')[idx]*100, 2),
+                round(self.get_weight('test')[idx]*100,2)))
+        
 if __name__ == "__main__":
-    from utils import read_config
-    config = read_config('config/base.yml')
-    datasource = PA_100K(root_dir=config['data']['data_dir'], download=True, extract=True)
-    print(np.expand_dims(datasource.get_weight('train'), axis=1))
+    datasource = PA_100K(root_dir='/datasets', download=True, extract=True)
+    datasource.summary_weight()
+    # print(np.expand_dims(datasource.get_weight('train'), axis=1))
+    # print(np.around(np.stack((datasource.get_weight('train'), datasource.get_weight('test')), axis=1)*100, 2))
+
+    # datasource.save_attribute('pa100k_attribute.pkl')
     pass
 
 '''
